@@ -26,15 +26,54 @@
 <button class="stats-button" id="statsButton" aria-expanded="false">Статистика</button>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([54.3105,26.845],14);
+const map=L.map('map',{zoomControl:false,preferCanvas:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([54.3105,26.845],14);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'}).addTo(map);
 L.control.zoom({position:'bottomleft'}).addTo(map);
-const R=12,KEY='mapmol-explored-v3';let points=[],seconds=0,totalMeters=0;
+const R=12,KEY='mapmol-explored-v4';let points=[],seconds=0,totalMeters=0;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}
 let watch=null,last=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
-const MaskLayer=L.Layer.extend({onAdd:function(m){this._map=m;this._canvas=L.DomUtil.create('canvas','exploration-mask');this._canvas.style.position='absolute';this._canvas.style.pointerEvents='none';this._canvas.style.zIndex=350;m.getPanes().overlayPane.appendChild(this._canvas);m.on('move zoom resize',this.draw,this);this.draw()},onRemove:function(m){L.DomUtil.remove(this._canvas);m.off('move zoom resize',this.draw,this)},draw:function(){if(!this._map)return;const s=this._map.getSize(),c=this._canvas,d=window.devicePixelRatio||1;c.width=s.x*d;c.height=s.y*d;c.style.width=s.x+'px';c.style.height=s.y+'px';L.DomUtil.setPosition(c,this._map.containerPointToLayerPoint([0,0]));const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,s.x,s.y);x.fillStyle='rgba(3,24,82,.78)';x.fillRect(0,0,s.x,s.y);x.globalCompositeOperation='destination-out';for(const p of points){const q=this._map.latLngToContainerPoint([p.lat,p.lng]),edge=this._map.latLngToContainerPoint([p.lat+R/111320,p.lng]),r=Math.max(5,Math.abs(edge.y-q.y));x.beginPath();x.arc(q.x,q.y,r,0,Math.PI*2);x.fill()}x.globalCompositeOperation='source-over'}});
+const MaskLayer=L.Layer.extend({
+ onAdd:function(m){
+  this._map=m;
+  this._canvas=L.DomUtil.create('canvas','exploration-mask');
+  this._canvas.style.position='absolute';
+  this._canvas.style.left='0';
+  this._canvas.style.top='0';
+  this._canvas.style.width='100%';
+  this._canvas.style.height='100%';
+  this._canvas.style.pointerEvents='none';
+  this._canvas.style.zIndex='300';
+  m.getContainer().appendChild(this._canvas);
+  m.on('move zoom resize viewreset zoomend moveend',this.draw,this);
+  this.draw();
+ },
+ onRemove:function(m){
+  L.DomUtil.remove(this._canvas);
+  m.off('move zoom resize viewreset zoomend moveend',this.draw,this);
+ },
+ draw:function(){
+  if(!this._map)return;
+  const s=this._map.getSize(),c=this._canvas,d=window.devicePixelRatio||1;
+  c.width=Math.round(s.x*d);c.height=Math.round(s.y*d);
+  c.style.width=s.x+'px';c.style.height=s.y+'px';
+  const x=c.getContext('2d');
+  x.setTransform(d,0,0,d,0,0);
+  x.clearRect(0,0,s.x,s.y);
+  x.globalCompositeOperation='source-over';
+  x.fillStyle='rgba(3,24,82,.78)';
+  x.fillRect(0,0,s.x,s.y);
+  x.globalCompositeOperation='destination-out';
+  for(const p of points){
+   const q=this._map.latLngToContainerPoint([p.lat,p.lng]);
+   const edge=this._map.latLngToContainerPoint([p.lat+R/111320,p.lng]);
+   const radius=Math.max(1,Math.abs(edge.y-q.y));
+   x.beginPath();x.arc(q.x,q.y,radius,0,Math.PI*2);x.fill();
+  }
+  x.globalCompositeOperation='source-over';
+ }
+});
 const mask=new MaskLayer().addTo(map);
 function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('percent').textContent=points.length.toLocaleString('ru-RU');save()}
 function reveal(lat,lng){if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],[lat,lng])>5){points.push({lat,lng});mask.draw();update()}}
