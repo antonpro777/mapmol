@@ -2,43 +2,46 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#071426"><title>MapMol — исследуй Молодечно</title>
+<meta name="theme-color" content="#101820"><title>MapMol — Молодечно</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
-:root{color-scheme:dark;--bg:#071426;--panel:#0c1d33;--line:#1d3654;--muted:#8da4bf;--blue:#1688ff}
-*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:var(--bg);color:#eef6ff}body{overflow:hidden}.app{height:100dvh;display:flex;flex-direction:column}.top{z-index:500;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:#071426ed;border-bottom:1px solid var(--line)}.brand{font-weight:850;letter-spacing:.3px}.brand span{color:#42a5ff}.sub{font-size:11px;color:var(--muted);margin-top:2px}.status{font-size:11px;color:#b7d8ff;border:1px solid #24496e;border-radius:20px;padding:6px 9px}.mapwrap{position:relative;flex:1;min-height:0}#map{height:100%;width:100%;background:#172b3e}.stats{z-index:500;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;padding:10px;background:#071426}.stat{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 8px;min-width:0}.stat b{display:block;font-size:17px;font-variant-numeric:tabular-nums}.stat small{display:block;color:var(--muted);font-size:10px;margin-top:3px;white-space:nowrap}.controls{z-index:500;display:flex;gap:8px;padding:0 10px 10px;background:#071426}.btn{border:0;border-radius:12px;padding:13px 12px;font-weight:750;color:white;background:#176fca;flex:1;font-size:13px}.btn.secondary{background:#142b45;border:1px solid #294764}.btn:disabled{opacity:.45}.hint{position:absolute;z-index:400;left:12px;top:12px;background:#071426df;border:1px solid #31516d;border-radius:10px;padding:8px 10px;font-size:11px;color:#d7eaff;pointer-events:none;max-width:230px}.legend{position:absolute;z-index:400;right:12px;top:12px;background:#071426df;border:1px solid #31516d;border-radius:10px;padding:8px 10px;font-size:11px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:#102d68;border:1px solid #68aaff}.leaflet-control-attribution{font-size:9px!important}.leaflet-control-zoom a{background:#0c1d33!important;color:#fff!important;border-color:#294764!important}.leaflet-container{font:inherit}.notice{font-size:10px;color:#7891ad;text-align:center;padding:0 12px 8px;background:#071426}
-@media(min-width:760px){.app{max-width:1100px;margin:auto;height:100dvh;border-left:1px solid var(--line);border-right:1px solid var(--line)}.top{padding:14px 20px}.stats{padding:12px 16px}.stat{padding:12px}.stat b{font-size:20px}.controls{padding:0 16px 12px}.btn{max-width:280px}.hint,.legend{font-size:12px}}
+*{box-sizing:border-box}html,body,#map{height:100%;width:100%;margin:0}body{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;background:#101820;overflow:hidden}
+#map{position:absolute;inset:0;background:#182633}.leaflet-control-attribution{font-size:9px!important;background:#101820b8!important;color:#c8d2dc!important}.leaflet-control-attribution a{color:#8fc7ff!important}
+.stats-button{position:absolute;z-index:1000;right:18px;bottom:24px;border:0;border-radius:16px;padding:14px 19px;background:#fff;color:#17212b;font-size:14px;font-weight:750;box-shadow:0 6px 24px #0005;cursor:pointer}
+.stats-panel{position:absolute;z-index:999;left:14px;right:14px;bottom:84px;max-width:440px;margin:auto;padding:18px;border-radius:20px;background:#111d29f2;color:#f4f7fb;box-shadow:0 12px 40px #0007;backdrop-filter:blur(18px);display:none}
+.stats-panel.open{display:block}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.panel-head strong{font-size:17px}.gps{font-size:11px;color:#9eb1c4}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:13px;border-radius:13px;background:#ffffff0b}.stat b{display:block;font-size:23px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.stat small{display:block;margin-top:4px;color:#9eb1c4;font-size:11px}.brand{position:absolute;z-index:900;left:16px;top:16px;padding:9px 12px;border-radius:12px;background:#111d29d9;color:#fff;font-size:13px;font-weight:850;letter-spacing:.4px;pointer-events:none}.brand span{color:#68b6ff}
+@media(min-width:700px){.stats-button{right:28px;bottom:28px}.stats-panel{left:auto;right:28px;bottom:88px}.brand{left:24px;top:24px}}
 </style></head>
-<body><main class="app">
-<header class="top"><div><div class="brand">MAP<span>MOL</span> <span style="color:#eef6ff">/ Молодечно</span></div><div class="sub">Исследуй город шаг за шагом</div></div><div class="status" id="gpsStatus">GPS не включён</div></header>
-<section class="mapwrap"><div id="map"></div><div class="hint">Тёмно-синяя маска скрывает неизученное. При движении GPS открывает область радиусом около 200 м.</div><div class="legend"><span class="dot"></span>Не исследовано</div></section>
-<section class="stats">
-<div class="stat"><b id="steps">0</b><small>Шагов · оценка</small></div><div class="stat"><b id="distance">0 м</b><small>Пройдено</small></div><div class="stat"><b id="elapsed">00:00</b><small>Время</small></div><div class="stat"><b id="percent">0</b><small>Открытых точек</small></div>
+<body>
+<div id="map"></div><div class="brand">MAP<span>MOL</span></div>
+<section class="stats-panel" id="statsPanel">
+ <div class="panel-head"><strong>Моя статистика</strong><span class="gps" id="gpsStatus">Подключение GPS…</span></div>
+ <div class="stats-grid">
+  <div class="stat"><b id="steps">0</b><small>Шагов · примерно</small></div>
+  <div class="stat"><b id="distance">0 м</b><small>Пройдено</small></div>
+  <div class="stat"><b id="elapsed">00:00</b><small>Время исследования</small></div>
+  <div class="stat"><b id="percent">0</b><small>Открытых точек</small></div>
+ </div>
 </section>
-<div class="controls"><button class="btn" id="start">▶ Начать исследование</button><button class="btn secondary" id="center">◎ Моё местоположение</button><button class="btn secondary" id="reset">Сбросить</button></div>
-<div class="notice">*Число открытых GPS-точек; одна точка открывает область радиусом около 200 м. GPS работает через HTTPS и требует разрешения браузера. Шаги рассчитываются приблизительно по расстоянию.</div>
-</main>
+<button class="stats-button" id="statsButton" aria-expanded="false">Статистика</button>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-const map=L.map('map',{zoomControl:true,preferCanvas:true}).setView([54.3105,26.845],14);
+const map=L.map('map',{zoomControl:false,preferCanvas:true}).setView([54.3105,26.845],14);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'}).addTo(map);
-L.control.scale({imperial:false}).addTo(map);
-const R=200, KEY='mapmol-explored-v1';
-let points=[];try{points=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){points=[]}
-let watch=null,startedAt=0,timer=null,seconds=0,totalMeters=0,last=null,userMarker=null,accuracyCircle=null;
+L.control.zoom({position:'bottomleft'}).addTo(map);
+const R=200,KEY='mapmol-explored-v2';let points=[],seconds=0,totalMeters=0;
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}
+let watch=null,last=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
 const $=id=>document.getElementById(id);
-function circlePoints(latlng,radius){const out=[];const d=radius/111320,dl=radius/(111320*Math.cos(latlng.lat*Math.PI/180));for(let i=0;i<48;i++){const a=i*Math.PI*2/48;out.push([latlng.lat+Math.sin(a)*d,latlng.lng+Math.cos(a)*dl])}return out}
-const mask=L.layerGroup().addTo(map);
-const MaskLayer=L.Layer.extend({onAdd:function(m){this._map=m;this._canvas=L.DomUtil.create('canvas','exploration-mask');this._canvas.style.position='absolute';this._canvas.style.pointerEvents='none';this._canvas.style.zIndex=350;m.getPanes().overlayPane.appendChild(this._canvas);m.on('move zoom resize',this._draw,this);this._draw()},onRemove:function(m){L.DomUtil.remove(this._canvas);m.off('move zoom resize',this._draw,this)},_draw:function(){if(!this._map)return;const size=this._map.getSize(),c=this._canvas,dpr=window.devicePixelRatio||1;c.width=size.x*dpr;c.height=size.y*dpr;c.style.width=size.x+'px';c.style.height=size.y+'px';L.DomUtil.setPosition(c,this._map.containerPointToLayerPoint([0,0]));const x=c.getContext('2d');x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,size.x,size.y);x.fillStyle='rgba(3,24,82,.84)';x.fillRect(0,0,size.x,size.y);x.globalCompositeOperation='destination-out';for(const p of points){const ll=L.latLng(p.lat,p.lng),pt=this._map.latLngToContainerPoint(ll),edge=this._map.latLngToContainerPoint([p.lat+R/111320,p.lng]),rad=Math.max(5,Math.abs(edge.y-pt.y));x.beginPath();x.arc(pt.x,pt.y,rad,0,Math.PI*2);x.fill()}x.globalCompositeOperation='source-over'}});
-const maskLayer=new MaskLayer();maskLayer.addTo(map);
-function saveState(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,totalMeters,savedAt:Date.now()}))}catch(e){console.warn('Не удалось сохранить прогресс',e)}}
-function redraw(){maskLayer._draw();saveState();$('percent').textContent=points.length.toLocaleString('ru-RU')}
-function fmtTime(s){return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
-function updateStats(){$('steps').textContent=Math.round(totalMeters/0.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=fmtTime(seconds);saveState()}
-function reveal(lat,lng){const p={lat,lng};if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],[lat,lng])>35){points.push(p);redraw()}}
-function onPosition(pos){const {latitude:lat,longitude:lng,accuracy}=pos.coords;const ll=L.latLng(lat,lng);$('gpsStatus').textContent='GPS активен · ±'+Math.round(accuracy)+' м';if(!userMarker){userMarker=L.circleMarker(ll,{radius:7,color:'#fff',weight:3,fillColor:'#1688ff',fillOpacity:1}).addTo(map).bindPopup('Вы здесь')}else userMarker.setLatLng(ll);if(accuracyCircle)map.removeLayer(accuracyCircle);accuracyCircle=L.circle(ll,{radius:Math.min(accuracy,80),color:'#8dc8ff',weight:1,fillOpacity:.06,interactive:false}).addTo(map);if(last){const d=map.distance(last,ll);if(d>3&&d<150)totalMeters+=d}last=ll;reveal(lat,lng);updateStats()}
-$('start').onclick=()=>{if(!navigator.geolocation){alert('Геолокация не поддерживается браузером');return}if(watch!==null){navigator.geolocation.clearWatch(watch);watch=null;clearInterval(timer);$('start').textContent='▶ Продолжить исследование';$('gpsStatus').textContent='Пауза';return}watch=navigator.geolocation.watchPosition(onPosition,e=>{$('gpsStatus').textContent='Ошибка GPS';alert('Не удалось получить GPS: '+e.message+' Разрешите доступ к местоположению и используйте HTTPS.')},{enableHighAccuracy:true,maximumAge:3000,timeout:15000});startedAt=Date.now()-seconds*1000;timer=setInterval(()=>{seconds=Math.floor((Date.now()-startedAt)/1000);updateStats()},1000);$('start').textContent='Ⅱ Пауза';};
-$('center').onclick=()=>{if(userMarker)map.setView(userMarker.getLatLng(),16);else if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],16),()=>alert('Сначала разрешите доступ к GPS.'))};
-$('reset').onclick=()=>{if(!confirm('Удалить всю сохранённую исследованную территорию и статистику?'))return;if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;clearInterval(timer);points=[];totalMeters=0;seconds=0;startedAt=0;last=null;$('start').textContent='▶ Начать исследование';$('gpsStatus').textContent='GPS не включён';updateStats();redraw()};
-redraw();updateStats();
+function save(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
+const MaskLayer=L.Layer.extend({onAdd:function(m){this._map=m;this._canvas=L.DomUtil.create('canvas','exploration-mask');this._canvas.style.position='absolute';this._canvas.style.pointerEvents='none';this._canvas.style.zIndex=350;m.getPanes().overlayPane.appendChild(this._canvas);m.on('move zoom resize',this.draw,this);this.draw()},onRemove:function(m){L.DomUtil.remove(this._canvas);m.off('move zoom resize',this.draw,this)},draw:function(){if(!this._map)return;const s=this._map.getSize(),c=this._canvas,d=window.devicePixelRatio||1;c.width=s.x*d;c.height=s.y*d;c.style.width=s.x+'px';c.style.height=s.y+'px';L.DomUtil.setPosition(c,this._map.containerPointToLayerPoint([0,0]));const x=c.getContext('2d');x.setTransform(d,0,0,d,0,0);x.clearRect(0,0,s.x,s.y);x.fillStyle='rgba(3,24,82,.78)';x.fillRect(0,0,s.x,s.y);x.globalCompositeOperation='destination-out';for(const p of points){const q=this._map.latLngToContainerPoint([p.lat,p.lng]),edge=this._map.latLngToContainerPoint([p.lat+R/111320,p.lng]),r=Math.max(5,Math.abs(edge.y-q.y));x.beginPath();x.arc(q.x,q.y,r,0,Math.PI*2);x.fill()}x.globalCompositeOperation='source-over'}});
+const mask=new MaskLayer().addTo(map);
+function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('percent').textContent=points.length.toLocaleString('ru-RU');save()}
+function reveal(lat,lng){if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],[lat,lng])>35){points.push({lat,lng});mask.draw();update()}}
+function position(pos){const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,ll=L.latLng(lat,lng);$('gpsStatus').textContent='GPS активен';if(!userMarker){userMarker=L.circleMarker(ll,{radius:7,color:'#fff',weight:3,fillColor:'#1688ff',fillOpacity:1}).addTo(map);map.setView(ll,16)}else userMarker.setLatLng(ll);if(accuracyCircle)map.removeLayer(accuracyCircle);accuracyCircle=L.circle(ll,{radius:Math.min(acc,80),color:'#8dc8ff',weight:1,fillOpacity:.05,interactive:false}).addTo(map);if(last){const d=map.distance(last,ll);if(d>3&&d<150)totalMeters+=d}last=ll;reveal(lat,lng);update()}
+function gpsError(e){$('gpsStatus').textContent='GPS недоступен';console.warn('Geolocation:',e.message)}
+if(navigator.geolocation){watch=navigator.geolocation.watchPosition(position,gpsError,{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}else $('gpsStatus').textContent='Нет поддержки GPS';
+setInterval(()=>{if(watch!==null){seconds=Math.floor((Date.now()-startedAt)/1000);update()}},1000);
+$('statsButton').onclick=()=>{const open=$('statsPanel').classList.toggle('open');$('statsButton').setAttribute('aria-expanded',String(open));$('statsButton').textContent=open?'Скрыть':'Статистика'};
+update();
 </script></body></html>
