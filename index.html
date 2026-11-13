@@ -37,39 +37,39 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,tota
 const MaskLayer=L.Layer.extend({
  onAdd:function(m){
   this._map=m;
-  this._canvas=L.DomUtil.create('canvas','exploration-mask');
+  this._pane=m.createPane('explorationMaskPane');
+  this._pane.style.zIndex='250';
+  this._pane.style.pointerEvents='none';
+  this._canvas=L.DomUtil.create('canvas','exploration-mask',this._pane);
   this._canvas.style.position='absolute';
-  this._canvas.style.left='0';
-  this._canvas.style.top='0';
-  this._canvas.style.width='100%';
-  this._canvas.style.height='100%';
   this._canvas.style.pointerEvents='none';
-  this._canvas.style.zIndex='300';
-  m.getContainer().appendChild(this._canvas);
   m.on('move zoom resize viewreset zoomend moveend',this.draw,this);
   this.draw();
  },
  onRemove:function(m){
-  L.DomUtil.remove(this._canvas);
+  if(this._pane)m.getPanes().mapPane.removeChild(this._pane);
   m.off('move zoom resize viewreset zoomend moveend',this.draw,this);
  },
  draw:function(){
   if(!this._map)return;
-  const s=this._map.getSize(),c=this._canvas,d=window.devicePixelRatio||1;
+  const m=this._map,s=m.getSize(),c=this._canvas,d=window.devicePixelRatio||1;
   c.width=Math.round(s.x*d);c.height=Math.round(s.y*d);
   c.style.width=s.x+'px';c.style.height=s.y+'px';
+  const origin=m.containerPointToLayerPoint([0,0]);
+  L.DomUtil.setPosition(c,origin);
   const x=c.getContext('2d');
   x.setTransform(d,0,0,d,0,0);
   x.clearRect(0,0,s.x,s.y);
   x.globalCompositeOperation='source-over';
-  x.fillStyle='rgba(3,24,82,.78)';
+  x.fillStyle='rgba(3,24,82,.82)';
   x.fillRect(0,0,s.x,s.y);
   x.globalCompositeOperation='destination-out';
   for(const p of points){
-   const q=this._map.latLngToContainerPoint([p.lat,p.lng]);
-   const edge=this._map.latLngToContainerPoint([p.lat+R/111320,p.lng]);
+   const q=m.latLngToLayerPoint([p.lat,p.lng]);
+   const edge=m.latLngToLayerPoint([p.lat+R/111320,p.lng]);
+   const center={x:q.x-origin.x,y:q.y-origin.y};
    const radius=Math.max(1,Math.abs(edge.y-q.y));
-   x.beginPath();x.arc(q.x,q.y,radius,0,Math.PI*2);x.fill();
+   x.beginPath();x.arc(center.x,center.y,radius,0,Math.PI*2);x.fill();
   }
   x.globalCompositeOperation='source-over';
  }
