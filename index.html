@@ -10,7 +10,7 @@
 .stats-button{position:absolute;z-index:1000;right:18px;bottom:24px;border:0;border-radius:16px;padding:14px 19px;background:#fff;color:#17212b;font-size:14px;font-weight:750;box-shadow:0 6px 24px #0005;cursor:pointer}
 .stats-panel{position:absolute;z-index:999;left:14px;right:14px;bottom:84px;max-width:440px;margin:auto;padding:18px;border-radius:20px;background:#111d29f2;color:#f4f7fb;box-shadow:0 12px 40px #0007;backdrop-filter:blur(18px);display:none}
 .stats-panel.open{display:block}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.panel-head strong{font-size:17px}.gps{font-size:11px;color:#9eb1c4}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:13px;border-radius:13px;background:#ffffff0b}.stat b{display:block;font-size:23px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.stat small{display:block;margin-top:4px;color:#9eb1c4;font-size:11px}.brand{position:absolute;z-index:900;left:16px;top:16px;padding:9px 12px;border-radius:12px;background:#111d29d9;color:#fff;font-size:13px;font-weight:850;letter-spacing:.4px;pointer-events:none}.brand span{color:#68b6ff}
-.person-avatar{width:42px;height:58px;transform-origin:50% 82%;filter:drop-shadow(0 2px 3px #000b);color:#fff}
+.person-avatar{width:24px;height:34px;transform-origin:50% 82%;filter:drop-shadow(0 2px 3px #000b);color:#fff}
 .person-avatar svg{width:100%;height:100%;overflow:visible}
 .person-avatar .limb{transform-box:fill-box;transform-origin:50% 8%;stroke-linecap:round}
 .person-avatar.walking{animation:person-bob .55s ease-in-out infinite alternate}
@@ -104,7 +104,7 @@ function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleSt
 function reveal(lat,lng){const next=L.latLng(lat,lng);if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],next)>=2){points.push({lat,lng});mask.draw();update()}}
 function makePersonIcon(){
  const html='<div class="person-avatar walking"><svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="8" r="6" fill="#ffd6ad" stroke="#202b38" stroke-width="1.5"/><path d="M17 17 Q24 13 31 17 L34 37 Q24 42 14 37 Z" fill="#1688ff" stroke="#102b48" stroke-width="2"/><path class="limb arm-left" d="M17 20 L10 34" stroke="#ffd6ad" stroke-width="5"/><path class="limb arm-right" d="M31 20 L38 34" stroke="#ffd6ad" stroke-width="5"/><path class="limb leg-left" d="M19 37 L15 54 L10 59" stroke="#202b38" stroke-width="6" fill="none"/><path class="limb leg-right" d="M29 37 L33 54 L38 59" stroke="#202b38" stroke-width="6" fill="none"/><path d="M5 60 L14 60 M34 60 L43 60" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg></div>';
- return L.divIcon({className:'person-marker-shell',html,iconSize:[42,58],iconAnchor:[21,48]});
+ return L.divIcon({className:'person-marker-shell',html,iconSize:[24,34],iconAnchor:[12,28]});
 }
 function updatePerson(){
  if(!userMarker)return;
