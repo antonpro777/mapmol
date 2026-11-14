@@ -31,7 +31,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 L.control.zoom({position:'bottomleft'}).addTo(map);
 const R=12,KEY='mapmol-explored-v4';let points=[],seconds=0,totalMeters=0;
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}
-let watch=null,last=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
+let watch=null,last=null,lastTime=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
 const MaskLayer=L.Layer.extend({
@@ -64,22 +64,46 @@ const MaskLayer=L.Layer.extend({
   x.fillStyle='rgba(3,24,82,.82)';
   x.fillRect(0,0,s.x,s.y);
   x.globalCompositeOperation='destination-out';
-  for(const p of points){
+  const projected=points.map(p=>{
    const q=m.latLngToLayerPoint([p.lat,p.lng]);
    const edge=m.latLngToLayerPoint([p.lat+R/111320,p.lng]);
-   const center={x:q.x-origin.x,y:q.y-origin.y};
-   const radius=Math.max(1,Math.abs(edge.y-q.y));
-   x.beginPath();x.arc(center.x,center.y,radius,0,Math.PI*2);x.fill();
+   return {x:q.x-origin.x,y:q.y-origin.y,r:Math.max(1,Math.abs(edge.y-q.y))};
+  });
+  if(projected.length>1){
+   for(let i=1;i<projected.length;i++){
+    const a=projected[i-1],b=projected[i],r=(a.r+b.r)/2;
+    x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);
+    x.lineWidth=r*2;x.lineCap='round';x.lineJoin='round';x.stroke();
+   }
+  }
+  for(const p of projected){
+   x.beginPath();x.arc(p.x,p.y,p.r,0,Math.PI*2);x.fill();
   }
   x.globalCompositeOperation='source-over';
  }
 });
 const mask=new MaskLayer().addTo(map);
 function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('percent').textContent=points.length.toLocaleString('ru-RU');save()}
-function reveal(lat,lng){if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],[lat,lng])>5){points.push({lat,lng});mask.draw();update()}}
-function updateUserMarkerSize(){if(userMarker)userMarker.setStyle({radius:Math.max(2,Math.min(7,map.getZoom()-9)),weight:2})}map.on('zoomend',updateUserMarkerSize);function position(pos){const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=pos.coords.accuracy,ll=L.latLng(lat,lng);$('gpsStatus').textContent='GPS активен';if(!userMarker){userMarker=L.circleMarker(ll,{radius:5,color:'#fff',weight:2,fillColor:'#1688ff',fillOpacity:1}).addTo(map);map.setView(ll,16);updateUserMarkerSize()}else userMarker.setLatLng(ll);if(accuracyCircle)map.removeLayer(accuracyCircle);accuracyCircle=L.circle(ll,{radius:Math.min(acc,80),color:'#8dc8ff',weight:1,fillOpacity:.05,interactive:false}).addTo(map);if(last){const d=map.distance(last,ll);if(d>3&&d<150)totalMeters+=d}last=ll;reveal(lat,lng);update()}
+function reveal(lat,lng){const next=L.latLng(lat,lng);if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],next)>=2){points.push({lat,lng});mask.draw();update()}}
+function updateUserMarkerSize(){if(userMarker)userMarker.setStyle({radius:Math.max(2,Math.min(7,map.getZoom()-9)),weight:2})}map.on('zoomend',updateUserMarkerSize);
+function position(pos){
+ const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=Number(pos.coords.accuracy)||999,ll=L.latLng(lat,lng),now=pos.timestamp||Date.now();
+ if(acc>25){$('gpsStatus').textContent='GPS уточняет положение';return}
+ if(last){
+  const d=map.distance(last,ll),elapsed=Math.max(.5,(now-(lastTime||now-1000))/1000);
+  if(d>Math.max(35,elapsed*9)){ $('gpsStatus').textContent='GPS отфильтровал скачок';return }
+  if(d<1.5){$('gpsStatus').textContent='GPS активен';return}
+  totalMeters+=d;
+ }
+ last=ll;lastTime=now;
+ $('gpsStatus').textContent='GPS активен';
+ if(!userMarker){userMarker=L.circleMarker(ll,{radius:5,color:'#fff',weight:2,fillColor:'#1688ff',fillOpacity:1}).addTo(map);map.setView(ll,16);updateUserMarkerSize()}else userMarker.setLatLng(ll);
+ if(accuracyCircle)map.removeLayer(accuracyCircle);
+ accuracyCircle=L.circle(ll,{radius:Math.min(acc,25),color:'#8dc8ff',weight:1,fillOpacity:.04,interactive:false}).addTo(map);
+ reveal(lat,lng);update()
+}
 function gpsError(e){$('gpsStatus').textContent='GPS недоступен';console.warn('Geolocation:',e.message)}
-if(navigator.geolocation){watch=navigator.geolocation.watchPosition(position,gpsError,{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}else $('gpsStatus').textContent='Нет поддержки GPS';
+if(navigator.geolocation){watch=navigator.geolocation.watchPosition(position,gpsError,{enableHighAccuracy:true,maximumAge:0,timeout:20000})}else $('gpsStatus').textContent='Нет поддержки GPS';
 setInterval(()=>{if(watch!==null){seconds=Math.floor((Date.now()-startedAt)/1000);update()}},1000);
 $('statsButton').onclick=()=>{const open=$('statsPanel').classList.toggle('open');$('statsButton').setAttribute('aria-expanded',String(open));$('statsButton').textContent=open?'Скрыть':'Статистика'};
 update();
