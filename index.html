@@ -29,11 +29,11 @@
 const map=L.map('map',{zoomControl:false,preferCanvas:true,zoomAnimation:false,fadeAnimation:false,markerZoomAnimation:false}).setView([54.3105,26.845],14);
 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics'}).addTo(map);
 L.control.zoom({position:'bottomleft'}).addTo(map);
-const R=12,KEY='mapmol-explored-v4';let points=[],seconds=0,totalMeters=0;
-try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}
+const R=12,KEY='mapmol-explored-v4';let points=[],seconds=0,totalMeters=0,segmentStarts=[];
+try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0;segmentStarts=Array.isArray(s.segmentStarts)?s.segmentStarts:[]}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}segmentStarts.push(points.length);
 let watch=null,last=null,lastTime=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
 const $=id=>document.getElementById(id);
-function save(){try{localStorage.setItem(KEY,JSON.stringify({points,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify({points,segmentStarts,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
 const MaskLayer=L.Layer.extend({
  onAdd:function(m){
   this._map=m;
@@ -71,6 +71,7 @@ const MaskLayer=L.Layer.extend({
   });
   if(projected.length>1){
    for(let i=1;i<projected.length;i++){
+    if(segmentStarts.includes(i))continue;
     const a=projected[i-1],b=projected[i],r=(a.r+b.r)/2;
     x.beginPath();x.moveTo(a.x,a.y);x.lineTo(b.x,b.y);
     x.lineWidth=r*2;x.lineCap='round';x.lineJoin='round';x.stroke();
