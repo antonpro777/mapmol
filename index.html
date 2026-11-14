@@ -10,6 +10,22 @@
 .stats-button{position:absolute;z-index:1000;right:18px;bottom:24px;border:0;border-radius:16px;padding:14px 19px;background:#fff;color:#17212b;font-size:14px;font-weight:750;box-shadow:0 6px 24px #0005;cursor:pointer}
 .stats-panel{position:absolute;z-index:999;left:14px;right:14px;bottom:84px;max-width:440px;margin:auto;padding:18px;border-radius:20px;background:#111d29f2;color:#f4f7fb;box-shadow:0 12px 40px #0007;backdrop-filter:blur(18px);display:none}
 .stats-panel.open{display:block}.panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.panel-head strong{font-size:17px}.gps{font-size:11px;color:#9eb1c4}.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{padding:13px;border-radius:13px;background:#ffffff0b}.stat b{display:block;font-size:23px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}.stat small{display:block;margin-top:4px;color:#9eb1c4;font-size:11px}.brand{position:absolute;z-index:900;left:16px;top:16px;padding:9px 12px;border-radius:12px;background:#111d29d9;color:#fff;font-size:13px;font-weight:850;letter-spacing:.4px;pointer-events:none}.brand span{color:#68b6ff}
+.person-avatar{width:42px;height:58px;transform-origin:50% 82%;filter:drop-shadow(0 2px 3px #000b);color:#fff}
+.person-avatar svg{width:100%;height:100%;overflow:visible}
+.person-avatar .limb{transform-box:fill-box;transform-origin:50% 8%;stroke-linecap:round}
+.person-avatar.walking{animation:person-bob .55s ease-in-out infinite alternate}
+.person-avatar.running{animation:person-bob .24s ease-in-out infinite alternate}
+.person-avatar.walking .arm-left{animation:arm-swing .55s ease-in-out infinite alternate}
+.person-avatar.walking .arm-right{animation:arm-swing .55s ease-in-out infinite alternate-reverse}
+.person-avatar.walking .leg-left{animation:leg-swing .55s ease-in-out infinite alternate}
+.person-avatar.walking .leg-right{animation:leg-swing .55s ease-in-out infinite alternate-reverse}
+.person-avatar.running .arm-left{animation:arm-swing .24s ease-in-out infinite alternate}
+.person-avatar.running .arm-right{animation:arm-swing .24s ease-in-out infinite alternate-reverse}
+.person-avatar.running .leg-left{animation:leg-swing .24s ease-in-out infinite alternate}
+.person-avatar.running .leg-right{animation:leg-swing .24s ease-in-out infinite alternate-reverse}
+@keyframes person-bob{from{translate:0 0}to{translate:0 -3px}}
+@keyframes arm-swing{from{rotate:-28deg}to{rotate:28deg}}
+@keyframes leg-swing{from{rotate:24deg}to{rotate:-24deg}}
 @media(min-width:700px){.stats-button{right:28px;bottom:28px}.stats-panel{left:auto;right:28px;bottom:88px}.brand{left:24px;top:24px}}
 </style></head>
 <body>
@@ -20,7 +36,7 @@
   <div class="stat"><b id="steps">0</b><small>Шагов · примерно</small></div>
   <div class="stat"><b id="distance">0 м</b><small>Пройдено</small></div>
   <div class="stat"><b id="elapsed">00:00</b><small>Время исследования</small></div>
-  <div class="stat"><b id="percent">0</b><small>Открытых точек</small></div>
+  <div class="stat"><b id="percent">0</b><small>Открытых точек</small></div><div class="stat"><b id="speed">0,0 км/ч</b><small>Текущая скорость</small></div>
  </div>
 </section>
 <button class="stats-button" id="statsButton" aria-expanded="false">Статистика</button>
@@ -31,7 +47,7 @@ L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/
 L.control.zoom({position:'bottomleft'}).addTo(map);
 const R=12,KEY='mapmol-explored-v4';let points=[],seconds=0,totalMeters=0,segmentStarts=[];
 try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&typeof s==='object'&&!Array.isArray(s)){points=Array.isArray(s.points)?s.points:[];seconds=Number(s.seconds)||0;totalMeters=Number(s.totalMeters)||0;segmentStarts=Array.isArray(s.segmentStarts)?s.segmentStarts:[]}else{const old=JSON.parse(localStorage.getItem('mapmol-explored-v1')||'[]');if(Array.isArray(old))points=old}}catch(e){}segmentStarts.push(points.length);
-let watch=null,last=null,lastTime=null,userMarker=null,accuracyCircle=null,startedAt=Date.now()-seconds*1000;
+let watch=null,last=null,lastTime=null,userMarker=null,speedKmh=0,headingDeg=0,startedAt=Date.now()-seconds*1000;
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(KEY,JSON.stringify({points,segmentStarts,seconds,totalMeters,savedAt:Date.now()}))}catch(e){}}
 const MaskLayer=L.Layer.extend({
@@ -84,23 +100,41 @@ const MaskLayer=L.Layer.extend({
  }
 });
 const mask=new MaskLayer().addTo(map);
-function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('percent').textContent=points.length.toLocaleString('ru-RU');save()}
+function update(){ $('steps').textContent=Math.round(totalMeters/.75).toLocaleString('ru-RU');$('distance').textContent=totalMeters>=1000?(totalMeters/1000).toFixed(2)+' км':Math.round(totalMeters)+' м';$('elapsed').textContent=String(Math.floor(seconds/60)).padStart(2,'0')+':'+String(seconds%60).padStart(2,'0');$('percent').textContent=points.length.toLocaleString('ru-RU');$('speed').textContent=speedKmh.toFixed(1).replace('.',',')+' км/ч';save()}
 function reveal(lat,lng){const next=L.latLng(lat,lng);if(!points.length||map.distance([points[points.length-1].lat,points[points.length-1].lng],next)>=2){points.push({lat,lng});mask.draw();update()}}
-function updateUserMarkerSize(){if(userMarker)userMarker.setStyle({radius:Math.max(2,Math.min(7,map.getZoom()-9)),weight:2})}map.on('zoomend',updateUserMarkerSize);
+function makePersonIcon(){
+ const html='<div class="person-avatar walking"><svg viewBox="0 0 48 64" aria-hidden="true"><circle cx="24" cy="8" r="6" fill="#ffd6ad" stroke="#202b38" stroke-width="1.5"/><path d="M17 17 Q24 13 31 17 L34 37 Q24 42 14 37 Z" fill="#1688ff" stroke="#102b48" stroke-width="2"/><path class="limb arm-left" d="M17 20 L10 34" stroke="#ffd6ad" stroke-width="5"/><path class="limb arm-right" d="M31 20 L38 34" stroke="#ffd6ad" stroke-width="5"/><path class="limb leg-left" d="M19 37 L15 54 L10 59" stroke="#202b38" stroke-width="6" fill="none"/><path class="limb leg-right" d="M29 37 L33 54 L38 59" stroke="#202b38" stroke-width="6" fill="none"/><path d="M5 60 L14 60 M34 60 L43 60" stroke="#fff" stroke-width="4" stroke-linecap="round"/></svg></div>';
+ return L.divIcon({className:'person-marker-shell',html,iconSize:[42,58],iconAnchor:[21,48]});
+}
+function updatePerson(){
+ if(!userMarker)return;
+ const el=userMarker.getElement();if(!el)return;
+ const avatar=el.querySelector('.person-avatar');if(!avatar)return;
+ avatar.classList.toggle('running',speedKmh>=8.5);
+ avatar.classList.toggle('walking',speedKmh<8.5);
+ avatar.style.rotate=headingDeg+'deg';
+}
+function bearing(a,b){
+ const p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180;
+ return (Math.atan2(Math.sin(dl)*Math.cos(p2),Math.cos(p1)*Math.sin(p2)-Math.sin(p1)*Math.cos(p2)*Math.cos(dl))*180/Math.PI+360)%360;
+}
 function position(pos){
  const lat=pos.coords.latitude,lng=pos.coords.longitude,acc=Number(pos.coords.accuracy)||999,ll=L.latLng(lat,lng),now=pos.timestamp||Date.now();
- if(acc>25){$('gpsStatus').textContent='GPS уточняет положение';return}
+ if(acc>35){$('gpsStatus').textContent='GPS уточняет положение';return}
+ let moved=0,elapsed=1;
  if(last){
-  const d=map.distance(last,ll),elapsed=Math.max(.5,(now-(lastTime||now-1000))/1000);
-  if(d>Math.max(35,elapsed*9)){ $('gpsStatus').textContent='GPS отфильтровал скачок';return }
-  if(d<1.5){$('gpsStatus').textContent='GPS активен';return}
-  totalMeters+=d;
+  moved=map.distance(last,ll);elapsed=Math.max(.5,(now-(lastTime||now-1000))/1000);
+  if(moved>Math.max(35,elapsed*9)){$('gpsStatus').textContent='GPS отфильтровал скачок';return}
+  if(moved>=1.5){totalMeters+=moved;headingDeg=Number.isFinite(pos.coords.heading)&&pos.coords.heading>=0?pos.coords.heading:bearing(last,ll)}
  }
+ const sensorSpeed=pos.coords.speed;
+ const measured=(Number.isFinite(sensorSpeed)&&sensorSpeed>=0)?sensorSpeed*3.6:(moved>=1.5?moved/elapsed*3.6:0);
+ speedKmh=speedKmh*.55+Math.min(35,measured)*.45;
+ if(moved<1.5)speedKmh*=.65;
  last=ll;lastTime=now;
  $('gpsStatus').textContent='GPS активен';
- if(!userMarker){userMarker=L.circleMarker(ll,{radius:5,color:'#fff',weight:2,fillColor:'#1688ff',fillOpacity:1}).addTo(map);map.setView(ll,16);updateUserMarkerSize()}else userMarker.setLatLng(ll);
- if(accuracyCircle)map.removeLayer(accuracyCircle);
- accuracyCircle=L.circle(ll,{radius:Math.min(acc,25),color:'#8dc8ff',weight:1,fillOpacity:.04,interactive:false}).addTo(map);
+ if(!userMarker){userMarker=L.marker(ll,{icon:makePersonIcon(),interactive:false,zIndexOffset:1000}).addTo(map);map.setView(ll,16)}else userMarker.setLatLng(ll);
+ updatePerson();
  reveal(lat,lng);update()
 }
 function gpsError(e){$('gpsStatus').textContent='GPS недоступен';console.warn('Geolocation:',e.message)}
