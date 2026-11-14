@@ -112,7 +112,7 @@ function updatePerson(){
  const avatar=el.querySelector('.person-avatar');if(!avatar)return;
  avatar.classList.toggle('running',speedKmh>=8.5);
  avatar.classList.toggle('walking',speedKmh<8.5);
- avatar.style.rotate=headingDeg+'deg';
+ avatar.style.rotate='0deg';
 }
 function bearing(a,b){
  const p1=a.lat*Math.PI/180,p2=b.lat*Math.PI/180,dl=(b.lng-a.lng)*Math.PI/180;
